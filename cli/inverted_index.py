@@ -22,7 +22,7 @@ class InvertedIndex:
         self.term_frequencies[doc_id] = tf
 
     def get_documents(self, term: str):
-        # print("term", term)
+        print("term", term)
         return sorted(self.index.get(term.lower(), []))
 
     def get_tf(self, doc_id, term):
@@ -36,8 +36,8 @@ class InvertedIndex:
             # text = f"{mov['title']}"
             text = f"{mov['title']} {mov['description']}"
             # print(f"Adding {idx} - {text}")
-            self.__add_document(mov['id'], text)
-            self.docmap[idx] = mov
+            self.__add_document(mov["id"], text)
+            self.docmap[mov["id"]] = mov
         pass
 
     def save(self):
