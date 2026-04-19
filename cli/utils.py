@@ -18,7 +18,7 @@ def erase_stopword(text: list[str], STOPS: list[str]):
 
 
 def clear_punctuation(text: str):
-    return text.translate(str.maketrans("", "", string.punctuation))
+    return text.translate(str.maketrans("\n\t\r", "   ", string.punctuation))
 
 
 def tokenize(text: str, STOPS: list[str]):

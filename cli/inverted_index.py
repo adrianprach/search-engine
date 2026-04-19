@@ -17,11 +17,16 @@ class InvertedIndex:
 
     def __add_document(self, doc_id: int, text: str):
         tokens = tokenize(text, self.stopwords)
+        # print(tokens)
         tf = self.term_frequencies.get(doc_id, dict())
         for idx, token in enumerate(tokens):
             self.index[token] = self.index.get(token, set()).union(set({doc_id}))
             tf[token] = tf.get(token, 0) + 1
         self.term_frequencies[doc_id] = tf
+
+    def add_doc(self, doc_id: int, text: str):
+        self.load_stopword()
+        self.__add_document(doc_id, text)
 
     def get_documents(self, term: str):
         return sorted(self.index.get(term.lower(), []))
@@ -57,6 +62,12 @@ class InvertedIndex:
         df = len(self.search(term))
         bm25 = math.log((all_docs_len - df + 0.5) / (df + 0.5) + 1)
         return bm25
+
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float):
+        tokenized_term = tokenize(term, self.stopwords)
+        tf = self.get_tf(doc_id, tokenized_term[0])
+        tuned_tf = (tf * (k1 + 1)) / (tf + k1)
+        return tuned_tf
 
     def build(self, movies: dict):
         self.load_stopword()
