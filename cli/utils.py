@@ -1,5 +1,3 @@
-import argparse
-import json
 import string
 from nltk.stem import PorterStemmer
 
