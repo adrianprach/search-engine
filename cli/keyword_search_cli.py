@@ -50,6 +50,15 @@ def get_tfidf(doc_id: int, term: str):
     tf_idf = idx.get_tfidf(doc_id, term)
     print(f"TF-IDF score of '{term}' in document id '{doc_id}': {tf_idf:.2f}")
 
+def get_bm25idf(term: str):
+    if term is None or len(term) < 1:
+        raise Exception("Term cannot be empty!")
+
+    idx = InvertedIndex()
+    idx.load()
+    bm25idf = idx.get_bm25_idf(term)
+    print(f"BM25 IDF score of '{term}': {bm25idf:.2f}")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -62,6 +71,7 @@ def main() -> None:
     )
     idf_parser = subparsers.add_parser("idf", help="Inverse document frequencies")
     tfidf_parser = subparsers.add_parser("tfidf", help="TF-IDF for document rating")
+    bm25idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
 
     search_parser.add_argument("query", type=str, help="Search query")
     tf_parser.add_argument("doc_id", type=int, help="Doc id")
@@ -72,6 +82,8 @@ def main() -> None:
 
     tfidf_parser.add_argument("doc_id", type=int, help="Doc id")
     tfidf_parser.add_argument("term", type=str, help="Term for tf-idf")
+
+    bm25idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")
 
     args = parser.parse_args()
 
@@ -89,6 +101,8 @@ def main() -> None:
             get_idf(args.term)
         case "tfidf":
             get_tfidf(args.doc_id, args.term)
+        case "bm25idf":
+            get_bm25idf(args.term)
         case _:
             parser.print_help()
 

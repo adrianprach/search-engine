@@ -52,6 +52,12 @@ class InvertedIndex:
         tf_idf = tf * idf
         return tf_idf
 
+    def get_bm25_idf(self, term: str):
+        all_docs_len = len(self.docmap)
+        df = len(self.search(term))
+        bm25 = math.log((all_docs_len - df + 0.5) / (df + 0.5) + 1)
+        return bm25
+
     def build(self, movies: dict):
         self.load_stopword()
         for idx, mov in enumerate(movies):
