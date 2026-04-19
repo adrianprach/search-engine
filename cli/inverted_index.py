@@ -9,20 +9,31 @@ class InvertedIndex:
     idx_pickel_path = "./cache/index.pkl"
     docmap_pickel_path = "./cache/docmap.pkl"
     term_frequencies_pickel_path = "./cache/term_frequencies.pkl"
+    doc_lengths_path = "./cache/doc_lengths.pkl"
+    avg_doc_length: None | float = None
 
     def __init__(self):
         self.index = dict()
         self.docmap = dict()
         self.term_frequencies = dict()
+        self.doc_lengths = dict()
 
     def __add_document(self, doc_id: int, text: str):
         tokens = tokenize(text, self.stopwords)
-        # print(tokens)
         tf = self.term_frequencies.get(doc_id, dict())
         for idx, token in enumerate(tokens):
             self.index[token] = self.index.get(token, set()).union(set({doc_id}))
             tf[token] = tf.get(token, 0) + 1
         self.term_frequencies[doc_id] = tf
+        self.doc_lengths[doc_id] = len(tokens)
+
+    def __get_avg_doc_length(self):
+        if self.avg_doc_length is not None:
+            return self.avg_doc_length
+        avg_doc_length = sum(self.doc_lengths.values()) / len(self.doc_lengths)
+        self.avg_doc_length = avg_doc_length
+        # print(f"AVG DOC LENGTH: {avg_doc_length}")
+        return avg_doc_length
 
     def add_doc(self, doc_id: int, text: str):
         self.load_stopword()
@@ -63,11 +74,19 @@ class InvertedIndex:
         bm25 = math.log((all_docs_len - df + 0.5) / (df + 0.5) + 1)
         return bm25
 
-    def get_bm25_tf(self, doc_id: int, term: str, k1: float):
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float, b: float = 0.75):
         tokenized_term = tokenize(term, self.stopwords)
         tf = self.get_tf(doc_id, tokenized_term[0])
-        tuned_tf = (tf * (k1 + 1)) / (tf + k1)
+
+        doc_length = self.doc_lengths.get(doc_id)
+        avg_doc_length = self.__get_avg_doc_length()
+        length_norm = 1 - b + b * (doc_length / avg_doc_length)
+
+        tuned_tf = (tf * (k1 + 1)) / (tf + k1 * length_norm)
+
+        # print(f"DOC LENGTH: {doc_length}, AVG DOC LENGTH: {avg_doc_length}")
         return tuned_tf
+
 
     def build(self, movies: dict):
         self.load_stopword()
@@ -87,6 +106,8 @@ class InvertedIndex:
             pickle.dump(self.docmap, file=f, protocol=pickle.HIGHEST_PROTOCOL)
         with open(self.term_frequencies_pickel_path, "wb") as f:
             pickle.dump(self.term_frequencies, file=f, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(self.doc_lengths_path, "wb") as f:
+            pickle.dump(self.doc_lengths, file=f, protocol=pickle.HIGHEST_PROTOCOL)
 
     def load(self):
         if not os.path.exists(self.idx_pickel_path):
@@ -94,9 +115,9 @@ class InvertedIndex:
         if not os.path.exists(self.docmap_pickel_path):
             raise Exception(f"File Docmap: {self.docmap_pickel_path} is not there.")
         if not os.path.exists(self.term_frequencies_pickel_path):
-            raise Exception(
-                f"File Term frequencies: {self.term_frequencies_pickel_path} is not there."
-            )
+            raise Exception(f"File Term frequencies: {self.term_frequencies_pickel_path} is not there.")
+        if not os.path.exists(self.doc_lengths_path):
+            raise Exception(f"File Doc Length: {self.doc_lengths_path} is not there.")
 
         with open(self.idx_pickel_path, "rb") as file:
             self.index = pickle.load(file=file)
@@ -104,7 +125,8 @@ class InvertedIndex:
             self.docmap = pickle.load(file=file)
         with open(self.term_frequencies_pickel_path, "rb") as file:
             self.term_frequencies = pickle.load(file=file)
-
+        with open(self.doc_lengths_path, "rb") as file:
+            self.doc_lengths = pickle.load(file=file)
         self.load_stopword()
 
     def load_stopword(self):

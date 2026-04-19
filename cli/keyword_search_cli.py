@@ -5,6 +5,10 @@ from inverted_index import InvertedIndex
 
 MOVIES = []
 
+# Default tuning parameters for bm25 
+BM25_K1 = 1.5
+BM25_B = 0.75
+
 
 def define_dataset() -> list[dict]:
     with open("./data/movies.json", "r") as f:
@@ -59,10 +63,10 @@ def get_bm25idf(term: str):
     bm25idf = idx.get_bm25_idf(term)
     print(f"BM25 IDF score of '{term}': {bm25idf:.2f}")
 
-def get_bm25tf(doc_id: int, term: str, k1: float):
+def get_bm25tf(doc_id: int, term: str, k1: float, b: float):
     idx = InvertedIndex()
     idx.load()
-    tuned_tf = idx.get_bm25_tf(doc_id, term, k1)
+    tuned_tf = idx.get_bm25_tf(doc_id, term, k1, b)
     print(f"BM25 TF score of '{term}' in document '{doc_id}': {tuned_tf:.2f}")
 
 
@@ -94,7 +98,8 @@ def main() -> None:
 
     bm25tf_parser.add_argument("doc_id", type=int, help="Document ID")
     bm25tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
-    bm25tf_parser.add_argument("k1", type=float, nargs='?', default=1.5, help="Tunable BM25 K1 parameters")
+    bm25tf_parser.add_argument("k1", type=float, nargs='?', default=BM25_K1, help="Tunable BM25 K1 parameters")
+    bm25tf_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable B parameters.")
 
     args = parser.parse_args()
 
@@ -115,7 +120,7 @@ def main() -> None:
         case "bm25idf":
             get_bm25idf(args.term)
         case "bm25tf":
-            get_bm25tf(args.doc_id, args.term, args.k1)
+            get_bm25tf(args.doc_id, args.term, args.k1, args.b)
         case _:
             parser.print_help()
 
