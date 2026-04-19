@@ -49,6 +49,24 @@ class InvertedIndex:
             results.extend(self.get_documents(token))
         return results
 
+    def search_with_bm25(self, query: str, limit: int = 5):
+        terms = set(tokenize(query, self.stopwords))
+        matched = set(self.search(query))
+        results = []
+
+        for doc_id in matched:
+            bm25 = 0
+            movie = self.docmap[doc_id]
+            for token in terms:
+                bm25_tf = self.get_bm25_tf(movie["id"], token)
+                bm25_idf = self.get_bm25_idf(token)
+                bm25 += (bm25_tf * bm25_idf)
+            # print(f"{movie['title']}, {bm25:.2f}")
+            results.append({**movie, "score": bm25})
+        results = sorted(results, key=lambda movie: movie["score"], reverse=True)
+        results = list(map(lambda movie: f"({movie['id']}) {movie['title']} - Score: {movie['score']:.2f}", results))[:limit]
+        return results
+
     def get_tf(self, doc_id, term):
         doc_terms = self.term_frequencies[doc_id]
         # print(f"doc_terms: {doc_terms}")
@@ -74,8 +92,9 @@ class InvertedIndex:
         bm25 = math.log((all_docs_len - df + 0.5) / (df + 0.5) + 1)
         return bm25
 
-    def get_bm25_tf(self, doc_id: int, term: str, k1: float, b: float = 0.75):
+    def get_bm25_tf(self, doc_id: int, term: str, k1: float = 1.5, b: float = 0.75):
         tokenized_term = tokenize(term, self.stopwords)
+        # print(f"term: {term} => {tokenized_term}")
         tf = self.get_tf(doc_id, tokenized_term[0])
 
         doc_length = self.doc_lengths.get(doc_id)
@@ -86,7 +105,6 @@ class InvertedIndex:
 
         # print(f"DOC LENGTH: {doc_length}, AVG DOC LENGTH: {avg_doc_length}")
         return tuned_tf
-
 
     def build(self, movies: dict):
         self.load_stopword()
@@ -115,7 +133,9 @@ class InvertedIndex:
         if not os.path.exists(self.docmap_pickel_path):
             raise Exception(f"File Docmap: {self.docmap_pickel_path} is not there.")
         if not os.path.exists(self.term_frequencies_pickel_path):
-            raise Exception(f"File Term frequencies: {self.term_frequencies_pickel_path} is not there.")
+            raise Exception(
+                f"File Term frequencies: {self.term_frequencies_pickel_path} is not there."
+            )
         if not os.path.exists(self.doc_lengths_path):
             raise Exception(f"File Doc Length: {self.doc_lengths_path} is not there.")
 

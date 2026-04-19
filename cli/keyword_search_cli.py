@@ -9,7 +9,6 @@ MOVIES = []
 BM25_K1 = 1.5
 BM25_B = 0.75
 
-
 def define_dataset() -> list[dict]:
     with open("./data/movies.json", "r") as f:
         return json.load(f)["movies"]
@@ -69,6 +68,13 @@ def get_bm25tf(doc_id: int, term: str, k1: float, b: float):
     tuned_tf = idx.get_bm25_tf(doc_id, term, k1, b)
     print(f"BM25 TF score of '{term}' in document '{doc_id}': {tuned_tf:.2f}")
 
+def search_with_bm25(query: str, limit: int):
+    idx = InvertedIndex()
+    idx.load()
+    results = idx.search_with_bm25(query, limit)
+    for index, movie in enumerate(results):
+        print(f"{index + 1}. {movie}")
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Keyword Search CLI")
@@ -83,6 +89,8 @@ def main() -> None:
     tfidf_parser = subparsers.add_parser("tfidf", help="TF-IDF for document rating")
     bm25idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
     bm25tf_parser = subparsers.add_parser("bm25tf", help="Get BM25 TF score for a given document ID and term")
+
+    bm25_search_parser = subparsers.add_parser("bm25search", help="Search movies using full BM25 scoring.")
 
     search_parser.add_argument("query", type=str, help="Search query")
     tf_parser.add_argument("doc_id", type=int, help="Doc id")
@@ -100,6 +108,9 @@ def main() -> None:
     bm25tf_parser.add_argument("term", type=str, help="Term to get BM25 TF score for")
     bm25tf_parser.add_argument("k1", type=float, nargs='?', default=BM25_K1, help="Tunable BM25 K1 parameters")
     bm25tf_parser.add_argument("b", type=float, nargs='?', default=BM25_B, help="Tunable B parameters.")
+
+    bm25_search_parser.add_argument("query", type=str, help="Search query")
+    bm25_search_parser.add_argument("limit", type=int, nargs='?', default=5, help="Limit results")
 
     args = parser.parse_args()
 
@@ -121,6 +132,8 @@ def main() -> None:
             get_bm25idf(args.term)
         case "bm25tf":
             get_bm25tf(args.doc_id, args.term, args.k1, args.b)
+        case "bm25search":
+            search_with_bm25(args.query, args.limit)
         case _:
             parser.print_help()
 
